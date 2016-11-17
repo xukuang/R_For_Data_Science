@@ -239,7 +239,7 @@ nycflights13::flights %>%
 
 如果说变异描述的变量内部的变化，协变量描述的变量之间的变化。协变异描述的是两个或多个变量之间的变化趋势。描述协变量的最好方法是可视化两个或多个变量之间的关系找出协变异。同样，如何画图也取决于变量的类型。
 
-#### 7.5.1 连续型变量和连续型变量
+#### 7.5.1 分类型变量和连续型变量
 
 探究连续型变量依据一个分类型变量的分布是比较常见的，如前面的频率多边形。geom_freqpoly()默认的设置对于这类比较并不是非常有用的，因为高度是个数。那意味着如果一个分组比其他的分组低，那是很难看出形状上的差异的。例如，我们可以分析一下钻石的价格随着其切工的变化。
 
@@ -248,3 +248,150 @@ ggplot(data = diamonds, mapping = aes(x = price)) +
   geom_freqpoly(mapping = aes(colour = cut), binwidth = 500)
 ```
 
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-20-1.png)
+
+要找出它们分布之间的不同是很困难的，因为整体的个数有很大的差别。
+
+```
+ggplot(diamonds) + 
+  geom_bar(mapping = aes(x = cut))
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-21-1.png)
+
+为了能够方便的比较，我们需要改变一下y轴上显示的指标。我们使用密度替换个数，这里的密度是通过个数标准化得到的，每个频率图的面积都是1。
+
+```
+ggplot(data = diamonds, mapping = aes(x = price, y = ..density..)) + 
+  geom_freqpoly(mapping = aes(colour = cut), binwidth = 500)
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-22-1.png)
+
+关于这幅图有一些奇怪的地方。图中显示正常的钻石(最低品质)却有着最高的评价价格。这可能是由于频率多边形难以解释的。关于这幅图，还有大量的事情要做。
+
+展示连续型变量依据一个分类型变量的分布的另一种方法是使用箱线图。线性图是一种查看变量值分布的简洁可视化方式，它也是统计上比较流行的图行。箱线图又下面几部分组成：
+
+* 箱图，指示了分布到25%到75%的距离，这个距离就是我们熟知的四分位距离。箱图中部的线指示分布的中位数，即50%值。这三条形给出了分布的状况，或者是对称的，或者是偏向一边。
+* 可视化点展示的是那些落在了距离箱图1.5倍距离以外。这些外面的点在单独画图时候并不容易发现。
+* 线（或须）展示的从线的边界到最远非异常点的距离。
+
+![img](http://r4ds.had.co.nz/images/EDA-boxplot.png)
+
+接着我们使用geom_boxplot()看一下价格依据切工的分布。
+
+```
+ggplot(data = diamonds, mapping = aes(x = cut, y = price)) +
+  geom_boxplot()
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-24-1.png)
+
+从箱线图中我们能看到较少的分布信息，但是它更加的紧凑，方便我们更加容易地比较分析。它也支持那个反常的发现质量更高的钻石有更低的均价。在练习中，要求你找出其中的原因。
+
+切工是一个有序的因子。正常的要比好的差一些，比非常好的要更差，以此类推。许多分类变量并没有这样本质的顺序，因此，你为了能够展示更有效的信息，可能需要更改它们的顺序。为了做这个，你可以使用reorder()函数。
+
+例如，就mpg数据集中的class变量而言。你可能对不同类型的一定油量的高速公路的英里如何变化比较感兴趣。
+
+```
+ggplot(data = mpg, mapping = aes(x = class, y = hwy)) +
+  geom_boxplot()
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-25-1.png)
+
+为了更容易观察这个趋势，我们可以依据hwy的中位数来重新排序class。
+
+```
+ggplot(data = mpg) +
+  geom_boxplot(mapping = aes(x = reorder(class, hwy, FUN = median), y = hwy))
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-26-1.png)
+
+如果变量名过长，你可以把图像翻转90度，geom_boxplot()将有更好的效果。你可以通过coord_flip()来实现。
+
+```
+ggplot(data = mpg) +
+  geom_boxplot(mapping = aes(x = reorder(class, hwy, FUN = median), y = hwy)) +
+  coord_flip()
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-27-1.png)
+
+##### 7.5.1.1 练习
+
+1. 使用你学到的知识改进取消和未取消航班的出发时间的可视化效果。
+2. 在钻石数据集中哪个变量对于预测钻石的价格最重要？那个变量与切工有何种关联程度？为什么这两种关系导致低质量的钻石有更高的价格。
+3. 安装ggstance包，创建一个水平的箱线图。比较它与使用coor_flip()的区别。
+4. 箱线图的一个问题是它们方便对一个小的数据集的展示，同时对异常值有一个大量的展示。字符值图(letter value plot)可以解决这个问题。安装lvplot包，尝试使用geom_lv()函数来展示价格同切工的分布。你能获得什么信息？如何描绘这些图？
+5. 比较geom_violin()和一个分面的geom_histogram()，或个一个添加了颜色的geom_freqpoly()。每种方法有哪些优点和缺点。
+6. 如果你的数据集比较小，使用geom_jitter()来查看连续变量和分类变量之间的关系是非常有用的。ggbeeswarm包提供了一系列与geom_jitter()相似的函数。列出它们并简单的描述它们是用来做什么的。
+
+#### 7.5.2 两个分类型变量
+
+为了可视化两个分类型变量间的协变异，你需要查看每种组合的个数。一个方法就是利用内建的geom_count()函数。
+
+```
+ggplot(data = diamonds) +
+  geom_count(mapping = aes(x = cut, y = color))
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-28-1.png)
+
+图中每个圆环的大小代表了每个观测值的个数。协变异表明x和y之间存在着很强的关联。
+
+```
+diamonds %>% 
+  count(color, cut)
+#> Source: local data frame [35 x 3]
+#> Groups: color [?]
+#> 
+#>   color       cut     n
+#>   <ord>     <ord> <int>
+#> 1     D      Fair   163
+#> 2     D      Good   662
+#> 3     D Very Good  1513
+#> 4     D   Premium  1603
+#> 5     D     Ideal  2834
+#> 6     E      Fair   224
+#> # ... with 29 more rows
+```
+
+另一种方法是使用dplyr包中的count计算：
+
+```
+diamonds %>% 
+  count(color, cut)
+#> Source: local data frame [35 x 3]
+#> Groups: color [?]
+#> 
+#>   color       cut     n
+#>   <ord>     <ord> <int>
+#> 1     D      Fair   163
+#> 2     D      Good   662
+#> 3     D Very Good  1513
+#> 4     D   Premium  1603
+#> 5     D     Ideal  2834
+#> 6     E      Fair   224
+#> # ... with 29 more rows
+```
+
+使用geom_title()和fill属性来可视化。
+
+```
+diamonds %>% 
+  count(color, cut) %>%  
+  ggplot(mapping = aes(x = color, y = cut)) +
+    geom_tile(mapping = aes(fill = n))
+```
+
+![img](http://r4ds.had.co.nz/EDA_files/figure-html/unnamed-chunk-30-1.png)
+
+如果分类变量是无序的，为了能够更加清楚地展示这些有趣的格局，你可能希望使用seriation包来同时排序行和列。对更大图，你可以尝试使用d3heatmap或者heatmaply包创建互动图。
+
+##### 7.5.2.1 练习
+
+1. 如何重新缩放上面的计数数据来更加清晰地显示切工依据颜色的分布，或者颜色依据切工的分布？
+2. 使用geom_tile()结合dplyr包来分析不同月份和不同目的间航班延误的差异。什么原因使图像难以理解？如何改进？
+3. 为什么在上面的例子中，aes(x = color, y = cut)的效果略好于aes(x = cut, y = color)？
